@@ -1,0 +1,17 @@
+tr, td {
+	border: 1px solid blue;
+	color: orange;
+	padding: 10px;
+}
+
+.blocked {
+	background-color: black;
+}
+
+.unblocked {
+	background-color: white;
+}
+
+.percolated {
+	background-color: blue;
+}
