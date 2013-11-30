@@ -1,6 +1,6 @@
 import math
 import random
-from . import uf
+import uf
 
 
 """	.	
@@ -178,3 +178,5 @@ def run(size=10, times=1000):
 
 
 
+if __name__ =="__main__":
+	run()
