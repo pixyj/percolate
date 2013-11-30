@@ -15,3 +15,7 @@ tr, td {
 .percolated {
 	background-color: blue;
 }
+
+#message {
+	font-size: 30px;
+}

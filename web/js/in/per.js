@@ -1,5 +1,9 @@
 var ItemView = Backbone.View.extend({
 	tagName: "td",
+	events: {
+		"click": "unblock"
+	},
+
 	initialize: function() {
 		this.model.on("change", this.update, this);
 	},
@@ -12,6 +16,9 @@ var ItemView = Backbone.View.extend({
 		this.$el.html(position);
 		this.update();
 		this.options.parent.append(this.$el);
+	},
+	unblock: function() {
+		this.model.unblock();
 	}
 });
 
@@ -21,7 +28,7 @@ var TableView = Backbone.View.extend({
 	initialize: function() {
 		this.items = [];
 		this.size = this.options.size;
-		this.model.on("itemStatusChanged", this.updateItemStatus, this);
+		this.model.on("change:percolated", this.update, this);
 
 	},
 	
@@ -43,14 +50,9 @@ var TableView = Backbone.View.extend({
 		this.$el.append(table);
 		return this;
 	},
-
-	setItemStatus: function(position, status) {
-		this.items[position-1].attr("class", status);
-		return this;
-	},
-	updateItemStatus: function(attrs) {
-		var position = attrs.position - 1;
-		this.items[position].attr("class", attrs.status);
+	update: function() {
+		var unblockedCount = this.model.get("unblockedCount");
+		$("#message").html("Done! <br/>Unblocked: " + unblockedCount)
 	}
 });
 
@@ -95,11 +97,17 @@ UnionFind.prototype.union = function(one, two) {
 }
 
 var PercolationItem = Backbone.Model.extend({
-
+	unblock: function() {
+		this.get("parent").unblockItem(this.get("position"));
+	}
 });
 
 var Percolation = Backbone.Model.extend({
-	
+	defaults: {
+		percolated: false,
+		unblockedCount: 0
+	},
+
 	initialize: function() {
 		var size = this.get("size");
 		this.total = size * size + 2;
@@ -110,7 +118,11 @@ var Percolation = Backbone.Model.extend({
 		this.unionFind = new UnionFind(this.total);
 		this.items = {};
 		for(var i=0; i<this.total; i++) {
-			var item = new PercolationItem({position: i, status: "blocked"});
+			var item = new PercolationItem({
+				position: i, 
+				status: "blocked",
+				parent: this
+			});
 			this.items[i] = item;
 		}
 		this.items[this.top].set("status", "percolated");
@@ -118,6 +130,10 @@ var Percolation = Backbone.Model.extend({
 
 	},
 	unblockItem: function(position) {
+		if(this.items[position].get("status") !== "blocked") {
+			return;
+		}
+
 		var neighbours = this.getNeighbours(position);
 		for(var i=0; i<neighbours.length; i++) {
 			var neighbour = neighbours[i];
@@ -148,6 +164,10 @@ var Percolation = Backbone.Model.extend({
 
 		if(status === "percolated") {
 			percolateNeighboursRecursively(position);
+		}
+		this.set("unblockedCount", this.get("unblockedCount") + 1);
+		if(this.isConnected(this.top, this.bottom)) {
+			this.set("percolated", true);
 		}
 	},
 	
@@ -257,9 +277,7 @@ var init = function() {
 	p = new Percolation({size: size});
 	t = new TableView({size: size, model: p});
 	t.render();
-	
-	run(p);	
-	
+	//run(p);	
 }
 
 function shuffleArray(array) {
